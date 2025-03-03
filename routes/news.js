@@ -83,7 +83,7 @@ router.post('/', upload.single('image'), async (req, res) => {
             <!-- FOOTER -->
             <div style="background: #f8f9fa; text-align: center; padding: 15px; font-size: 14px; color: #666;">
               <p>Thank you for staying updated with us!</p>
-              <p style="margin: 0;">📩 <a href="mailto:contact@yourwebsite.com" style="color:rgb(0, 0, 0); text-decoration: none;">Contact Us</a></p>
+              <p style="margin: 0;">📩 <a href="mailto:contact@omhyentertainment.com" style="color:rgb(0, 0, 0); text-decoration: none;">Contact Us</a></p>
             </div>
             
           </div>
