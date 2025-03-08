@@ -1,10 +1,13 @@
 const express = require('express');
 const multer = require('multer');
+const path = require('path');
 const AdminNews = require('../models/news');
 const NewsletterSubscriber = require('../models/NewsletterSubscriber'); // Importer les abonnés
 const nodemailer = require('nodemailer');
 
 const router = express.Router();
+
+// Configurer le transporteur pour Nodemailer
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.ionos.fr", // Serveur SMTP de IONOS
   port: parseInt(process.env.SMTP_PORT, 10) || 465, // Utiliser 465 (SSL) ou 587 (TLS)
@@ -12,8 +15,13 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.IONOS_EMAIL, // Adresse email IONOS
     pass: process.env.IONOS_PASSWORD, // Mot de passe IONOS
-  },});
-// Configuration de Multer
+  },
+});
+
+// Middleware pour servir les fichiers statiques (images dans le dossier uploads)
+router.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Configuration de Multer pour le téléchargement d'images
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/'); // Dossier où les images seront enregistrées
@@ -34,7 +42,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       contenu: req.body.contenu,
       date: req.body.date,
       lien: req.body.lien,
-      image: req.file ? req.file.path : null, // Enregistrer le chemin de l'image
+      image: req.file ? req.file.path.replace(/\\/g, '/') : null, // Enregistrer le chemin de l'image
     });
 
     const savedNews = await newNews.save();
@@ -42,24 +50,32 @@ router.post('/', upload.single('image'), async (req, res) => {
     // 📩 Récupérer les emails des abonnés
     const subscribers = await NewsletterSubscriber.find();
     const emailList = subscribers.map((sub) => sub.email);
+
+    // Vérifier s'il y a des abonnés
     if (emailList.length > 0) {
+      // Construire l'URL complète de l'image
+      const baseUrl = process.env.BASE_URL || 'http://localhost:3000'; // Base URL de votre application
+      const imageUrl = savedNews.image ? `${baseUrl}/${savedNews.image}` : null;
+
       const mailOptions = {
         from: `"OMHY FAMILY" <${process.env.IONOS_EMAIL}>`,
         to: emailList, // Envoyer à tous les abonnés
         subject: `📰 NEW UPDATE: ${savedNews.titre.toUpperCase()}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-            
             <!-- HEADER -->
             <div style="background:rgb(0, 0, 0); padding: 15px; text-align: center; color: white;">
               <h1 style="margin: 0; font-size: 22px;">LATEST NEWS UPDATE</h1>
             </div>
     
             <!-- IMAGE (si disponible) -->
-            ${savedNews.image ? `
-              <div style="text-align: center; padding: 10px;">
-                <img src="${savedNews.image}" alt="News Image" style="max-width: 100%; height: auto; border-radius: 8px;" />
-              </div>` : ''}
+            ${
+              imageUrl
+                ? `<div style="text-align: center; padding: 10px;">
+                     <img src="${imageUrl}" alt="News Image" style="max-width: 100%; height: auto; border-radius: 8px;" />
+                   </div>`
+                : ''
+            }
             
             <!-- CONTENT -->
             <div style="padding: 20px; color: #333;">
@@ -89,12 +105,10 @@ router.post('/', upload.single('image'), async (req, res) => {
                 </a>
               </p>
             </div>
-            
           </div>
         `,
       };
-    
-    
+
       // Envoyer l'email
       await transporter.sendMail(mailOptions);
     }
@@ -135,10 +149,8 @@ router.put('/:id', upload.single('image'), async (req, res) => {
       contenu: req.body.contenu,
       date: req.body.date,
       lien: req.body.lien,
-
-
     };
-    if (req.file) updatedData.image = req.file.path; // Mettre à jour l'image si présente
+    if (req.file) updatedData.image = req.file.path.replace(/\\/g, '/'); // Mettre à jour l'image si présente
 
     const updatedNews = await AdminNews.findByIdAndUpdate(req.params.id, updatedData, {
       new: true,
