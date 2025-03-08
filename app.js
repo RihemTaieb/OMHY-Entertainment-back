@@ -27,10 +27,13 @@ const app = express();
 
 // Serve static files from the 'uploads' folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/uploads/videos", express.static(path.join(__dirname, "uploads/videos")));
+app.use(
+  "/uploads/videos",
+  express.static(path.join(__dirname, "uploads/videos"))
+);
 
 // Middleware global
-const allowlist = [process.env.FRONT_APP_URL]; // Liste des domaines autorisés
+const allowlist = [process.env.FRONT_APP_URL, process.env.SERVER_URL]; // Liste des domaines autorisés
 
 const corsOptionsDelegate = function (req, callback) {
   const origin = req.header("Origin");
@@ -80,6 +83,7 @@ mongoose
 
 // Lancer le serveur
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {  // Listen on all interfaces, useful for Docker containers
+app.listen(PORT, "0.0.0.0", () => {
+  // Listen on all interfaces, useful for Docker containers
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
 });
