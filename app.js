@@ -22,6 +22,7 @@ const testRoutes = require("./routes/test");
 const contactRoutes = require("./routes/contact"); // Import de la route "contact"
 const newsletterRoutes = require("./routes/newsletter");
 const sliders = require("./routes/backgroundImageRoutes");
+const settings = require('./routes/settings');
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use("/api/tests", testRoutes);
 app.use("/api/contact", contactRoutes); // Ajout de la route "contact"
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/sliders", sliders);
+app.use('/api/settings', settings);
 
 // Connecter à MongoDB
 mongoose
