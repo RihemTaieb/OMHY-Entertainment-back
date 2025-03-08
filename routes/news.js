@@ -44,7 +44,7 @@ router.post('/', upload.single('image'), async (req, res) => {
     const emailList = subscribers.map((sub) => sub.email);
     if (emailList.length > 0) {
       const mailOptions = {
-        from: process.env.IONOS_EMAIL,
+        from: `"OMHY FAMILY" <${process.env.IONOS_EMAIL}>`,
         to: emailList, // Envoyer à tous les abonnés
         subject: `📰 NEW UPDATE: ${savedNews.titre.toUpperCase()}`,
         html: `
