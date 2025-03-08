@@ -54,7 +54,8 @@ router.post('/', upload.single('image'), async (req, res) => {
     // Vérifier s'il y a des abonnés
     if (emailList.length > 0) {
       // Construire l'URL complète de l'image
-      const baseUrl = process.env.BASE_URL || 'http://localhost:3000'; // Base URL de votre application
+     const baseUrl = `${process.env.SERVER_URL}:${process.env.PORT}`;
+
       const imageUrl = savedNews.image ? `${baseUrl}/${savedNews.image}` : null;
 
       const mailOptions = {
