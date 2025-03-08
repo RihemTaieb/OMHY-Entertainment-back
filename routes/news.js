@@ -6,14 +6,13 @@ const nodemailer = require('nodemailer');
 
 const router = express.Router();
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: false,
+  host: process.env.SMTP_HOST || "smtp.ionos.fr", // Serveur SMTP de IONOS
+  port: parseInt(process.env.SMTP_PORT, 10) || 465, // Utiliser 465 (SSL) ou 587 (TLS)
+  secure: process.env.SMTP_PORT == "465", // true pour SSL/TLS, false pour STARTTLS
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+    user: process.env.IONOS_EMAIL, // Adresse email IONOS
+    pass: process.env.IONOS_PASSWORD, // Mot de passe IONOS
+  },});
 // Configuration de Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -43,10 +42,9 @@ router.post('/', upload.single('image'), async (req, res) => {
     // 📩 Récupérer les emails des abonnés
     const subscribers = await NewsletterSubscriber.find();
     const emailList = subscribers.map((sub) => sub.email);
-
     if (emailList.length > 0) {
       const mailOptions = {
-        from: process.env.SMTP_USER,
+        from: process.env.IONOS_EMAIL,
         to: emailList, // Envoyer à tous les abonnés
         subject: `📰 NEW UPDATE: ${savedNews.titre.toUpperCase()}`,
         html: `
@@ -60,8 +58,7 @@ router.post('/', upload.single('image'), async (req, res) => {
             <!-- IMAGE (si disponible) -->
             ${savedNews.image ? `
               <div style="text-align: center; padding: 10px;">
-                <img src="http://localhost:5000/${savedNews.image}" alt="News Image"
-                     style="width: 100%; max-height: 250px; object-fit: cover; border-bottom: 4px solidrgb(0, 0, 0);">
+                <img src="${savedNews.image}" alt="News Image" style="max-width: 100%; height: auto; border-radius: 8px;" />
               </div>` : ''}
             
             <!-- CONTENT -->
@@ -84,11 +81,19 @@ router.post('/', upload.single('image'), async (req, res) => {
             <div style="background: #f8f9fa; text-align: center; padding: 15px; font-size: 14px; color: #666;">
               <p>Thank you for staying updated with us!</p>
               <p style="margin: 0;">📩 <a href="mailto:contact@omhyentertainment.com" style="color:rgb(0, 0, 0); text-decoration: none;">Contact Us</a></p>
+              <!-- UNSUBSCRIBE LINK -->
+              <p style="margin-top: 10px; font-size: 12px; color: #999;">
+                <a href="${process.env.UNSUBSCRIBE_URL}?email={{recipient_email}}" 
+                   style="color:rgb(0, 0, 0); text-decoration: none;">
+                   🗑️ Unsubscribe
+                </a>
+              </p>
             </div>
             
           </div>
         `,
       };
+    
     
       // Envoyer l'email
       await transporter.sendMail(mailOptions);
