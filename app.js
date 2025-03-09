@@ -34,7 +34,12 @@ app.use(
 );
 
 // Middleware global
-const allowlist = [process.env.FRONT_APP_URL, process.env.DNS]; // Liste des domaines autorisés
+const allowlist = [
+  process.env.FRONT_APP_URL,
+  process.env.DNS,
+  ,
+  process.env.CNAME,
+]; // Liste des domaines autorisés
 
 const corsOptionsDelegate = function (req, callback) {
   const origin = req.header("Origin");
