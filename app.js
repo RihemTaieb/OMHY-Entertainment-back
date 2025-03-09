@@ -25,6 +25,7 @@ const sliders = require("./routes/backgroundImageRoutes");
 const settings = require("./routes/settings");
 
 const app = express();
+app.set("trust proxy", 1);
 
 // Serve static files from the 'uploads' folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
