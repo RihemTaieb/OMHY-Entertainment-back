@@ -37,7 +37,6 @@ app.use(
 const allowlist = [
   process.env.FRONT_APP_URL,
   process.env.DNS,
-  ,
   process.env.CNAME,
 ]; // Liste des domaines autorisés
 
