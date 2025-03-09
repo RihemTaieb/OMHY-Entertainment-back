@@ -1,20 +1,27 @@
 const express = require('express');
 const multer = require('multer');
+const path = require('path');
 const AdminNews = require('../models/news');
 const NewsletterSubscriber = require('../models/NewsletterSubscriber'); // Importer les abonnés
 const nodemailer = require('nodemailer');
 
 const router = express.Router();
+
+// Configurer le transporteur pour Nodemailer
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: false,
+  host: process.env.SMTP_HOST || "smtp.ionos.fr", // Serveur SMTP de IONOS
+  port: parseInt(process.env.SMTP_PORT, 10) || 465, // Utiliser 465 (SSL) ou 587 (TLS)
+  secure: process.env.SMTP_PORT == "465", // true pour SSL/TLS, false pour STARTTLS
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env.IONOS_EMAIL, // Adresse email IONOS
+    pass: process.env.IONOS_PASSWORD, // Mot de passe IONOS
   },
 });
-// Configuration de Multer
+
+// Middleware pour servir les fichiers statiques (images dans le dossier uploads)
+router.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Configuration de Multer pour le téléchargement d'images
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/'); // Dossier où les images seront enregistrées
@@ -35,7 +42,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       contenu: req.body.contenu,
       date: req.body.date,
       lien: req.body.lien,
-      image: req.file ? req.file.path : null, // Enregistrer le chemin de l'image
+      image: req.file ? req.file.path.replace(/\\/g, '/') : null, // Enregistrer le chemin de l'image
     });
 
     const savedNews = await newNews.save();
@@ -44,25 +51,32 @@ router.post('/', upload.single('image'), async (req, res) => {
     const subscribers = await NewsletterSubscriber.find();
     const emailList = subscribers.map((sub) => sub.email);
 
+    // Vérifier s'il y a des abonnés
     if (emailList.length > 0) {
+      // Construire l'URL complète de l'image
+     const baseUrl = `${process.env.SERVER_URL}:${process.env.PORT}`;
+
+      const imageUrl = savedNews.image ? `${baseUrl}/${savedNews.image}` : null;
+
       const mailOptions = {
-        from: process.env.SMTP_USER,
+        from: `"OMHY FAMILY" <${process.env.IONOS_EMAIL}>`,
         to: emailList, // Envoyer à tous les abonnés
         subject: `📰 NEW UPDATE: ${savedNews.titre.toUpperCase()}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-            
             <!-- HEADER -->
             <div style="background:rgb(0, 0, 0); padding: 15px; text-align: center; color: white;">
               <h1 style="margin: 0; font-size: 22px;">LATEST NEWS UPDATE</h1>
             </div>
     
             <!-- IMAGE (si disponible) -->
-            ${savedNews.image ? `
-              <div style="text-align: center; padding: 10px;">
-                <img src="http://localhost:5000/${savedNews.image}" alt="News Image"
-                     style="width: 100%; max-height: 250px; object-fit: cover; border-bottom: 4px solidrgb(0, 0, 0);">
-              </div>` : ''}
+            ${
+              imageUrl
+                ? `<div style="text-align: center; padding: 10px;">
+                     <img src="${imageUrl}" alt="News Image" style="max-width: 100%; height: auto; border-radius: 8px;" />
+                   </div>`
+                : ''
+            }
             
             <!-- CONTENT -->
             <div style="padding: 20px; color: #333;">
@@ -84,12 +98,18 @@ router.post('/', upload.single('image'), async (req, res) => {
             <div style="background: #f8f9fa; text-align: center; padding: 15px; font-size: 14px; color: #666;">
               <p>Thank you for staying updated with us!</p>
               <p style="margin: 0;">📩 <a href="mailto:contact@omhyentertainment.com" style="color:rgb(0, 0, 0); text-decoration: none;">Contact Us</a></p>
+              <!-- UNSUBSCRIBE LINK -->
+              <p style="margin-top: 10px; font-size: 12px; color: #999;">
+                <a href="${process.env.UNSUBSCRIBE_URL}?email={{recipient_email}}" 
+                   style="color:rgb(0, 0, 0); text-decoration: none;">
+                   🗑️ Unsubscribe
+                </a>
+              </p>
             </div>
-            
           </div>
         `,
       };
-    
+
       // Envoyer l'email
       await transporter.sendMail(mailOptions);
     }
@@ -130,10 +150,8 @@ router.put('/:id', upload.single('image'), async (req, res) => {
       contenu: req.body.contenu,
       date: req.body.date,
       lien: req.body.lien,
-
-
     };
-    if (req.file) updatedData.image = req.file.path; // Mettre à jour l'image si présente
+    if (req.file) updatedData.image = req.file.path.replace(/\\/g, '/'); // Mettre à jour l'image si présente
 
     const updatedNews = await AdminNews.findByIdAndUpdate(req.params.id, updatedData, {
       new: true,
