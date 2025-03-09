@@ -22,7 +22,7 @@ const testRoutes = require("./routes/test");
 const contactRoutes = require("./routes/contact"); // Import de la route "contact"
 const newsletterRoutes = require("./routes/newsletter");
 const sliders = require("./routes/backgroundImageRoutes");
-const settings = require('./routes/settings');
+const settings = require("./routes/settings");
 
 const app = express();
 
@@ -34,7 +34,7 @@ app.use(
 );
 
 // Middleware global
-const allowlist = [process.env.FRONT_APP_URL, process.env.SERVER_URL,process.env.DNS]; // Liste des domaines autorisés
+const allowlist = [process.env.FRONT_APP_URL, process.env.DNS]; // Liste des domaines autorisés
 
 const corsOptionsDelegate = function (req, callback) {
   const origin = req.header("Origin");
@@ -72,7 +72,7 @@ app.use("/api/tests", testRoutes);
 app.use("/api/contact", contactRoutes); // Ajout de la route "contact"
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/sliders", sliders);
-app.use('/api/settings', settings);
+app.use("/api/settings", settings);
 
 // Connecter à MongoDB
 mongoose
